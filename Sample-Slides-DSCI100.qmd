@@ -1,0 +1,345 @@
+---
+title: "Lecture 11: Introduction to Inference and Sampling"
+subtitle: "DSCI 100 - Fall 2025"
+format: 
+  live-revealjs:
+    scrollable: true
+    slide-number: true
+    smaller: true
+    menu: 
+      side: right
+      width: wide
+webr:
+  packages:
+    - dplyr
+    - infer
+    - ggplot2
+  persist: true
+editor: visual
+execute:
+  echo: true
+  warning: false
+engine: webr
+---
+
+{{< include ./_extensions/r-wasm/live/_knitr.qmd >}}
+
+## Reminders
+
+```{webr}
+#| context: setup
+#| include: false
+
+
+# run in the background to create the data set. include:false means the code is not shown. 
+
+
+set.seed(1)
+virtual_ugrads <- tibble(student_id = seq(1, 50000, by = 1),
+                     phone_type = factor(rbinom(50000, 1, 0.63),
+                     labels = c("other", "iphone")))
+
+```
+
+-   Final exam: https://students.ubc.ca/enrolment/exams/exam-schedule
+
+## What is statistical inference?
+
+Statistical inference is the process of using a *sample* to make conclusions about a wider *population* the sample came from.
+
+**Why?:** It's often expensive or not possible to measure the whole population.
+
+**Example**: we want to know the average width of a species of sea star.
+
+![](images/intro-inf-1.png){fig-align="center"}
+
+## What is statistical inference?
+
+Statistical inference is the process of using a *sample* to make conclusions about a wider *population* the sample came from.
+
+**Why?:** It's often expensive or not possible to measure the whole population.
+
+**Example**: we want to know the average width of a species of sea star.
+
+![](images/intro-inf-2.png){fig-align="center"}
+
+## What is statistical inference?
+
+Statistical inference is the process of using a *sample* to make conclusions about a wider *population* the sample came from.
+
+**Why?:** It's often expensive or not possible to measure the whole population.
+
+**Example**: we want to know the average width of a species of sea star.
+
+![](images/intro-inf-3.png){fig-align="center"}
+
+## What is statistical inference?
+
+Statistical inference is the process of using a *sample* to make conclusions about a wider *population* the sample came from.
+
+**Why?:** It's often expensive or not possible to measure the whole population.
+
+**Example**: we want to know the average width of a species of sea star.
+
+![](images/intro-inf-4.png){fig-align="center"}
+
+## What is statistical inference?
+
+::: {contenteditable="true" style="border: 0.1px solid black; padding: 8px; font-size: 25px;"}
+-   [Population]{.underline}:
+
+-   [Sample]{.underline}:
+
+-   [Statistic]{.underline}:
+
+-   [Inference]{.underline}:
+:::
+
+```{=html}
+<!--
+
+The above text box can be edited live in class!
+
+* Population: collection of all possible observations + their frequency/count
+e.g. the widths of the entire population of sea stars
+
+* Sample: a randomly selected subset of observations
+e.g. I randomly pick 50 sea stars and record their widths
+
+* Statistic: something I compute using my sample
+e.g. the mean width of the sea stars in my sample
+
+* Inference: using the sample to make a conclusion about the whole population, and knowing how uncertain you are about your conclusion
+-->
+```
+
+## Inference in the wild: opinion polling
+
+Based on the results of a recent Angus Reid poll, it was estimated that 53% of Canadians felt that they were unable to keep up with the rising cost of living.
+
+source: <https://globalnews.ca/news/8650704/cost-of-living-canada-food-gas-energy-poll/>
+
+## Inference in the wild: marketing assessment
+
+What proportion of undergraduate students have an iPhone?
+
+![](https://media.wired.com/photos/5b22c5c4b878a15e9ce80d92/master/w_582,c_limit/iphonex-TA.jpg){fig-align="center"}
+
+## Inference in the wild: A/B Testing
+
+*(not in DSCI100 - you'll need to take a more advanced DSCI or STAT class for this!)*
+
+Which of the 2 website designs will lead to more customer engagement (measured by click-through-rate, for example)?
+
+![](https://www.seobility.net/en/wiki/images/2/24/AB-Testing.png){img="" align="left" fig-align="center" width="600"}
+
+<https://www.seobility.net/en/wiki/images/2/24/AB-Testing.png>
+
+## Estimation
+
+A particular inferential problem where we try to *estimate a quantitative property* of the population
+
+This quantitative property is called a **population parameter**
+
+**Question:** What *proportion* (a quantitative population parameter!) of UBC undergrads have an iphone?
+
+![](images/sampling.001.jpeg){fig-align="center" width="700"}
+
+## Estimation
+
+Step 1: randomly select a subset (a *sample*) and ask them if they have an iPhone
+
+Step 2: calculate the proportion in our sample (a *statistic* or *point estimate*) and use it as an estimate of the true population proportion
+
+![](images/sampling.002.jpeg){fig-align="center" width="700"}
+
+## Virtual simulation experiment
+
+Let's simulate this process to see how well sample estimates reflect the true population parameter!
+
+**Question:** What proportion of UBC undergrads have an iPhone?
+
+![](https://www.ubc.ca/_assets/img/okanagan-undergraduates-1920x700.jpg){fig-align="center"}
+
+-   Let's create a virtual group of students (our population) where 63% of the students have iPhones
+-   Then:
+    -   collect a random sample of 40 students,
+    -   calculate a proportion of students with iPhones
+
+## Virtual simulation experiment
+
+Let's load the required libraries for this lecture:
+
+```{r}
+library(dplyr)
+library(infer)
+library(ggplot2)
+```
+
+<!--# it's a bit strange, but we use R here, not webr   -->
+
+## Virtual simulation experiment
+
+#### 1. Our virtual UBC students (population)
+
+Let's examine our population of 50,000 students. Remember that the true proportion of iPhone users is 63%.
+
+```{webr}
+virtual_ugrads
+```
+
+::: fragment
+Check that the virtual population contains \~63% iPhone users:
+
+```{webr}
+# use your dplyr knowledge to check the proportion of iPhone users!
+
+...
+```
+:::
+
+```{=html}
+<!--
+
+virtual_ugrads |> 
+    group_by(phone_type) |> 
+    summarize(count = n(),
+             proportion = n() / 50000)
+-->
+```
+
+## Virtual Simulation Experiment
+
+#### 2. Drawing a sample of size 40
+
+Let's simulate taking one random sample from our virtual undergrad population. We will use the `rep_sample_n` function from the `infer` package:\
+
+```{webr}
+# draw a single sample from the virtual population 
+
+...
+```
+
+```{=html}
+<!--
+student_sample <- rep_sample_n(virtual_ugrads, size = 40)
+student_sample
+-->
+```
+
+::: fragment
+We can tell by the `student_id` column that R indeed did what we asked - randomly selected 40 students from our virtual population.
+:::
+
+## Virtual Simulation Experiment
+
+### What is the proportion of iPhone users in our sample?
+
+and is it close to the population proportion?
+
+```{webr}
+#compute the proportion of iPhone users in the sample
+```
+
+```{=html}
+<!--
+iphone_estimate_1 <- summarize(student_sample,
+                               count = sum(phone_type == "iphone"),
+                               prop = sum(phone_type == "iphone") / 40)
+iphone_estimate_1
+-->
+```
+
+## Virtual Simulation Experiment
+
+#### What happens if we were to take another sample?
+
+Would the proportion be the same?
+
+```{webr}
+# take another random sample from the virtual population
+```
+
+```{=html}
+<!--
+iphone_estimate_2 <- rep_sample_n(virtual_ugrads, size = 40) |>
+    summarize(count = sum(phone_type == "iphone"),
+              prop = sum(phone_type == "iphone") / 40)
+iphone_estimate_2
+-->
+```
+
+::: fragment
+#### and another?
+
+```{webr}
+# take another random sample from the virtual population
+```
+
+```{=html}
+<!--
+iphone_estimate_3 <- rep_sample_n(virtual_ugrads, size = 40) |>
+    summarize(count = sum(phone_type == "iphone"),
+              prop = sum(phone_type == "iphone") / 40)
+iphone_estimate_3
+-->
+```
+:::
+
+## Virtual Simulation Experiment
+
+#### What values do we expect when we sample?
+
+```{webr}
+iphone_estimate_1
+iphone_estimate_2
+iphone_estimate_3
+```
+
+## Sampling Distribution
+
+The distribution of estimates you get by taking many samples of a fixed sample size is called the sampling distribution.
+
+```{webr}
+# take many samples from the virtual student population
+```
+
+```{=html}
+<!--
+replicates <- rep_sample_n(virtual_ugrads, size = 40, reps = 10000) |>
+   group_by(replicate)  |> 
+   summarize(proportion = sum(phone_type == "iphone")/40)
+   
+replicates
+
+mean(replicates)
+-->
+```
+
+::: {contenteditable="true" style="border: 0.1px solid black; padding: 8px; font-size: 18px;"}
+Notes:
+:::
+
+
+## Sampling Distribution
+
+The distribution of estimates you get by taking many samples of a fixed sample size is called the sampling distribution.
+
+How did we do? How reliable is our sample estimate? Should we do anything to change it?
+
+```{webr}
+ggplot(replicates, aes(x = proportion)) +
+    geom_histogram(binwidth = .05) +
+    labs(x = "Proportion of iPhone Users", y = "Count") +
+    theme(text = element_text(size=20))
+```
+
+
+::: {contenteditable="true" style="border: 0.1px solid black; padding: 8px; font-size: 18px;"}
+Notes:
+:::
+
+
+## Worksheet time - go for it!
+
+![](https://media.giphy.com/media/CjmvTCZf2U3p09Cn0h/giphy.gif){fig-align="center"}
