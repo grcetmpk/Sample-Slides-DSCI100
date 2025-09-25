@@ -343,3 +343,20 @@ Notes:
 ## Worksheet time - go for it!
 
 ![](https://media.giphy.com/media/CjmvTCZf2U3p09Cn0h/giphy.gif){fig-align="center"}
+
+## To Save These Slides With Your Code
+
+To Print to PDF (with your code!), do the following:
+
+-   Open the in-browser print dialog `CMD/CTRL + P` or Right click \> Print
+
+-   Change the Destination setting to Save as PDF.
+
+-   Change the Layout to Landscape.
+
+-   Change the Margins to None. Enable the Background graphics option.
+
+-   Click Save 🎉
+
+In all cases, ensure the code chunks don't get cut off (i.e., a line is too long). You will **not** be able to edit these from the PDF directly (though you could open the slides again and copy-and-paste to re-run the code!)
+
